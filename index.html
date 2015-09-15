@@ -35,54 +35,66 @@
 
 		<script type="text/javascript">
 
-			var getPixel = function(d, x, y) {
+			var BG_IMG = new Image();
+			var BG_IMG_DATA_ARRAY = [];
 
-				// do so much thing here!
-				d[0] = 0;
-				d[1] = 1*y;
-				d[2] = 1*y;
-				d[3] = 255;
+			var drawImagePixel = function(canvasDataArray, canvasRedAt, imageDataArray, imageReadAt) {
 
-				return d;
+				canvasDataArray[canvasRedAt + 0] = imageDataArray[imageReadAt + 0];
+				canvasDataArray[canvasRedAt + 1] = imageDataArray[imageReadAt + 1];
+				canvasDataArray[canvasRedAt + 2] = imageDataArray[imageReadAt + 2];
+				canvasDataArray[canvasRedAt + 3] = imageDataArray[imageReadAt + 3];
+
 			};
 
-			var render = function (ctx, w, h) {
+			var drawTransparent = function(canvasDataArray, redAt) {
+				canvasDataArray[redAt    ] = 255;
+				canvasDataArray[redAt + 3] = 150;
+
+			};
+
+			var render = function (ctx, imageData, imageDataData, w, h) {
 
 				// loop each pixel render a whole picture
 				var drawX = 0;
 				var drawY = 0;
 
-				// reusable image data (for faster render)
-				var imageData = ctx.getImageData(0, 0, w, h);
-				var imageDataData = imageData.data;
 				var colorArray = [0, 0, 0, 255];
 				var redAt = 0;
 
 				for (drawY = 0; drawY < h; drawY++) {
 					for (drawX = 0; drawX < w; drawX++) {
 
-						// ctx.getImageData(0, 0, 1, 1);
+						if (drawX > (320 / 2) || drawY > (240 / 2)) {
+							drawTransparent(imageDataData, redAt);
+						} else {
+							drawImagePixel(imageDataData, redAt, BG_IMG_DATA_ARRAY, ((320 * drawY) + drawX) * 4);
+						}
 
-						getPixel(colorArray, drawX, drawY);
-						imageDataData[redAt] = colorArray[0];
-						imageDataData[redAt + 1] = colorArray[1];
-						imageDataData[redAt + 2] = colorArray[2];
-						imageDataData[redAt + 3] = colorArray[3];
+
+
 						redAt += 4;
-
 					}
 				}
 
 				ctx.putImageData(imageData, 0, 0);
 			};
 
-			var init = function () {
+			var getRawImageData = function(img) {
 
+				var cav = document.createElement('canvas');
+				var ctx = cav.getContext('2d');
+				ctx.drawImage(img, 0, 0);
+
+				return ctx.getImageData(0, 0, img.width, img.height);
+			};
+
+			var init = function () {
 
 				// screen size
 				var width = 320;
 				var height = 480;
-				var scale = 1;
+				var scale = 0.5;
 
 				// game canvas and context
 				var cav = document.getElementById('game_canvas');
@@ -94,7 +106,7 @@
 				ctx.mozImageSmoothingEnabled = false;
 				ctx.msImageSmoothingEnabled = false;
 				ctx.imageSmoothingEnabled = false;
-				ctx.fillStyle = '#000';
+				ctx.fillStyle = '#00F';
 				ctx.fillRect(0, 0, 320, 480);
 
 				// fps counter
@@ -106,31 +118,47 @@
 				ctx.textAlign = 'left';
 				ctx.font='20px Arial';
 
-
 				var bgCav = document.createElement('canvas');
 				var bgCtx = bgCav.getContext('2d');
 
 				bgCav.width = width * scale;
 				bgCav.height = height * scale;
 
-				var loop = setInterval(function(){
+				// reusable image data (for faster render)
+				var imageData = bgCtx.createImageData(width * scale, height * scale);
+				var imageDataData = imageData.data;
+
+				var start = function(){
+
+					// game loop
+					var loop = setInterval(function(){
+
+						// render image
+						ctx.clearRect(0, 0, width, height);
+
+						render(bgCtx, imageData, imageDataData, width * scale, height * scale);
+		    			ctx.drawImage(bgCav, 0, 0, width, height);
+
+						// render fps
+						date = new Date();
+						pft = cft;
+						cft = date.getTime();
+						tl = Math.min(cft - pft, 100);
+						date = null;
+		    			ctx.fillText('SCALE: ' + scale + ', FPS: ' + ~~(1000/tl), 0, 20);
 
 
-					// render image
-					render(bgCtx, width * scale, height * scale);
-	    			ctx.drawImage(bgCav, 0, 0, width, height);
+					}, 1000/60);
 
-					// render fps
-					date = new Date();
-					pft = cft;
-					cft = date.getTime();
-					tl = Math.min(cft - pft, 100);
-					date = null;
-	    			ctx.fillText('SCALE: ' + scale + ', FPS: ' + ~~(1000/tl), 0, 20);
+				};
 
-				}, 1000/60);
-
-
+				// load image
+				BG_IMG = new Image();
+				BG_IMG.onload = function(e){
+					BG_IMG_DATA_ARRAY = getRawImageData(BG_IMG).data;
+					start();
+				}
+				BG_IMG.src = 'ground.png';
 			};
 
 
