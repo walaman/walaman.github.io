@@ -57,7 +57,8 @@
 			var CAM_SL = 70;
 			var CAM_X = 120;
 			var CAM_Y = 50;
-			var CAM_Z = 0;
+			var CAM_Z = -240;
+			var CAM_R = 0;
 
 			var GROUND_W = 320;
 			var GROUND_H = 240;
@@ -77,24 +78,25 @@
 			};
 
 			var render = function (ctx, imageData, imageDataData, w, h) {
+
 				var u = 0;
 				var v = 0;
 				var redAt = 0;
 
-				for (v = 0; v < h; v++) {
-
+				for (v = 0; v < (h/2); v++) {
 					for (u = -(w/2); u < w/2; u++) {
 
+
 						var dz = (CAM_Y / v) * CAM_SL;
-						var dy = ~~(GROUND_H - dz);
+						
+						var dy = - ~~(CAM_Z + dz);
 						var dx = ~~(CAM_X + (dz * u) / CAM_SL);
 
-						if (dy >= 0 && dx >= 0) {
+						if (dy > 0 && dy < BG_IMG_HEIGHT && dx >= 0 && dx < BG_IMG_WIDTH) {
 							drawImagePixel(imageDataData, redAt, BG_IMG_DATA_ARRAY, getDataArrayRed(dx, dy, BG_IMG_WIDTH));
 						}
 
 						redAt += 4;
-
 					}
 				}
 				
@@ -128,7 +130,7 @@
 				ctx.msImageSmoothingEnabled = false;
 				ctx.imageSmoothingEnabled = false;
 				ctx.fillStyle = '#00F';
-				ctx.fillRect(0, 0, 320, 480);
+				ctx.fillRect(0, 0, width, height);
 
 				// fps counter
 				var date = new Date();
@@ -156,7 +158,7 @@
 						// render image
 						ctx.clearRect(0, 0, width, height);
 						render(bgCtx, imageData, imageDataData, width * SCALE, height * SCALE);
-		    			ctx.drawImage(bgCav, 0, 0, width, height);
+		    			ctx.drawImage(bgCav, 0, height/2, width, height);
 
 						// render fps
 						date = new Date();
