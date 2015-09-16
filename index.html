@@ -86,7 +86,6 @@
 				for (v = 0; v < (h/2); v++) {
 					for (u = -(w/2); u < w/2; u++) {
 
-
 						var dz = (CAM_Y / v) * CAM_SL;
 						var dy = - ~~(CAM_Z + dz);
 						var dx = ~~(CAM_X + (dz * u) / CAM_SL);
@@ -157,7 +156,7 @@
 						// render image
 						ctx.clearRect(0, 0, width, height);
 						render(bgCtx, imageData, imageDataData, width * SCALE, height * SCALE);
-		    			ctx.drawImage(bgCav, 0, 0, width, height);
+		    			// ctx.drawImage(bgCav, 0, 0, width, height);
 
 						// render fps
 						date = new Date();
