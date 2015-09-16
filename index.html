@@ -16,7 +16,6 @@
 		<meta http-equiv="pragma" content="no-cache" />
 		<!--link rel="stylesheet" href="css/main.css"-->
 
-
 		<style>
 
 		  body {
@@ -43,59 +42,71 @@
 
 		</style>
 
+	</head>
+	<body onload="init()">
+		
+		<canvas id="game_canvas"></canvas>
+
 		<script type="text/javascript">
 
 			var BG_IMG = new Image();
 			var BG_IMG_DATA_ARRAY = [];
+			var BG_IMG_WIDTH = 320;
+			var BG_IMG_HEIGHT = 240;
+
+			var CAM_SL = 70;
+			var CAM_X = 120;
+			var CAM_Y = 50;
+			var CAM_Z = 0;
+
+			var GROUND_W = 320;
+			var GROUND_H = 240;
+			var GROUND_Y = 0;
+
+			var SCALE = 0.5;
 
 			var drawImagePixel = function(canvasDataArray, canvasRedAt, imageDataArray, imageReadAt) {
-
 				canvasDataArray[canvasRedAt + 0] = imageDataArray[imageReadAt + 0];
 				canvasDataArray[canvasRedAt + 1] = imageDataArray[imageReadAt + 1];
 				canvasDataArray[canvasRedAt + 2] = imageDataArray[imageReadAt + 2];
 				canvasDataArray[canvasRedAt + 3] = imageDataArray[imageReadAt + 3];
-
 			};
 
-			var drawTransparent = function(canvasDataArray, redAt) {
-				canvasDataArray[redAt    ] = 255;
-				canvasDataArray[redAt + 3] = 150;
-
+			var getDataArrayRed = function(x, y, width) {
+				return ((width * y) + x) * 4;
 			};
 
 			var render = function (ctx, imageData, imageDataData, w, h) {
-
-				// loop each pixel render a whole picture
-				var drawX = 0;
-				var drawY = 0;
-
-				var colorArray = [0, 0, 0, 255];
+				var u = 0;
+				var v = 0;
 				var redAt = 0;
 
-				for (drawY = 0; drawY < h; drawY++) {
-					for (drawX = 0; drawX < w; drawX++) {
+				for (v = 0; v < h; v++) {
 
-						if (drawX > (320 / 2) || drawY > (240 / 2)) {
-							drawTransparent(imageDataData, redAt);
-						} else {
-							drawImagePixel(imageDataData, redAt, BG_IMG_DATA_ARRAY, ((320 * drawY) + drawX) * 4);
+					for (u = -(w/2); u < w/2; u++) {
+
+						var dz = (CAM_Y / v) * CAM_SL;
+						var dy = ~~(GROUND_H - dz);
+						var dx = ~~(CAM_X + (dz * u) / CAM_SL);
+
+						if (dy >= 0 && dx >= 0) {
+							drawImagePixel(imageDataData, redAt, BG_IMG_DATA_ARRAY, getDataArrayRed(dx, dy, BG_IMG_WIDTH));
 						}
 
-
-
 						redAt += 4;
+
 					}
 				}
-
+				
 				ctx.putImageData(imageData, 0, 0);
 			};
 
 			var getRawImageData = function(img) {
-
 				var cav = document.createElement('canvas');
 				var ctx = cav.getContext('2d');
+				cav.width = img.width;
+				cav.height = img.height;
 				ctx.drawImage(img, 0, 0);
-
 				return ctx.getImageData(0, 0, img.width, img.height);
 			};
 
@@ -104,7 +115,6 @@
 				// screen size
 				var width = 320;
 				var height = 480;
-				var scale = 0.5;
 
 				// game canvas and context
 				var cav = document.getElementById('game_canvas');
@@ -129,37 +139,34 @@
 				ctx.textAlign = 'left';
 				ctx.font='20px Arial';
 
+				// ground canvas
 				var bgCav = document.createElement('canvas');
 				var bgCtx = bgCav.getContext('2d');
-
-				bgCav.width = width * scale;
-				bgCav.height = height * scale;
+				bgCav.width = width * SCALE;
+				bgCav.height = height * SCALE;
 
 				// reusable image data (for faster render)
-				var imageData = bgCtx.createImageData(width * scale, height * scale);
+				var imageData = bgCtx.createImageData(width * SCALE, height * SCALE);
 				var imageDataData = imageData.data;
 
 				var start = function(){
 
-					// game loop
 					var loop = setInterval(function(){
 
 						// render image
 						ctx.clearRect(0, 0, width, height);
-
-						render(bgCtx, imageData, imageDataData, width * scale, height * scale);
+						render(bgCtx, imageData, imageDataData, width * SCALE, height * SCALE);
 		    			ctx.drawImage(bgCav, 0, 0, width, height);
 
 						// render fps
 						date = new Date();
 						pft = cft;
 						cft = date.getTime();
-						tl = Math.min(cft - pft, 100);
+						tl = cft - pft;
 						date = null;
-		    			ctx.fillText('SCALE: ' + scale + ', FPS: ' + ~~(1000/tl), 0, 20);
+		    			ctx.fillText('SCALE: ' + SCALE + ', FPS: ' + ~~(1000/tl), 0, 20);
 
-
-					}, 1000/60);
+					}, 1000/100);
 
 				};
 
@@ -167,6 +174,7 @@
 				BG_IMG = new Image();
 				BG_IMG.onload = function(e){
 					BG_IMG_DATA_ARRAY = getRawImageData(BG_IMG).data;
+					console.log(BG_IMG_DATA_ARRAY);
 					start();
 				}
 				BG_IMG.src = 'ground.png';
@@ -174,11 +182,6 @@
 
 
 		</script>
-
-	</head>
-	<body onload="init()">
-		
-		<canvas id="game_canvas"></canvas>
 
 	</body>
 </html>
