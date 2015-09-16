@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="en" ng-app="fscApp" >
+<html lang="en" >
 	<head>
 
         <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1.0, minimum-scale=1.0, user-scalable=0"; />
@@ -19,9 +19,10 @@
 		<style>
 
 		  body {
-		  	background-color : lightgray;
+		  	background-color : #00F;
 		  	padding : 0px;
 		  	margin : 0px;
+		  	overflow: hidden;
 		  }
 		  h1 {
 		  	color : blue;
@@ -56,15 +57,16 @@
 
 			var CAM_SL = 70;
 			var CAM_X = 120;
-			var CAM_Y = 50;
-			var CAM_Z = -240;
+			var CAM_Y = 30;
+			var CAM_Z = -230;
 			var CAM_R = 0;
 
 			var GROUND_W = 320;
 			var GROUND_H = 240;
 			var GROUND_Y = 0;
-
 			var SCALE = 0.5;
+
+			var LOOP_COUNT = 0;
 
 			var drawImagePixel = function(canvasDataArray, canvasRedAt, imageDataArray, imageReadAt) {
 				canvasDataArray[canvasRedAt + 0] = imageDataArray[imageReadAt + 0];
@@ -82,16 +84,20 @@
 				var u = 0;
 				var v = 0;
 				var redAt = 0;
+				LOOP_COUNT = 0;
 
-				for (v = 0; v < (h/2); v++) {
+				for (v = 0; v < h/2; v++) {
+
+					var projDistance = (CAM_Y / v) * CAM_SL;
+
 					for (u = -(w/2); u < w/2; u++) {
 
-						var dz = (CAM_Y / v) * CAM_SL;
-						var dy = - ~~(CAM_Z + dz);
-						var dx = ~~(CAM_X + (dz * u) / CAM_SL);
+						var dy = - (CAM_Z + projDistance);
+						var dx = (CAM_X + (projDistance * u) / CAM_SL);
 
 						if (dy > 0 && dy < BG_IMG_HEIGHT && dx >= 0 && dx < BG_IMG_WIDTH) {
-							drawImagePixel(imageDataData, redAt, BG_IMG_DATA_ARRAY, getDataArrayRed(dx, dy, BG_IMG_WIDTH));
+							drawImagePixel(imageDataData, redAt, BG_IMG_DATA_ARRAY, getDataArrayRed(~~dx, ~~dy, BG_IMG_WIDTH));
+							LOOP_COUNT++;
 						}
 
 						redAt += 4;
@@ -114,7 +120,7 @@
 
 				// screen size
 				var width = 320;
-				var height = 480;
+				var height = 375;
 
 				// game canvas and context
 				var cav = document.getElementById('game_canvas');
@@ -127,6 +133,7 @@
 				ctx.mozImageSmoothingEnabled = false;
 				ctx.msImageSmoothingEnabled = false;
 				ctx.imageSmoothingEnabled = false;
+				// cav.style.backgroundColor = '#000';
 				ctx.fillStyle = '#00F';
 				ctx.fillRect(0, 0, width, height);
 
@@ -146,7 +153,7 @@
 				bgCav.height = height * SCALE;
 
 				// reusable image data (for faster render)
-				var imageData = bgCtx.createImageData(width * SCALE, height * SCALE);
+				var imageData = bgCtx.getImageData(0, 0, width * SCALE, height * SCALE);
 				var imageDataData = imageData.data;
 
 				var start = function(){
@@ -156,7 +163,10 @@
 						// render image
 						ctx.clearRect(0, 0, width, height);
 						render(bgCtx, imageData, imageDataData, width * SCALE, height * SCALE);
-		    			// ctx.drawImage(bgCav, 0, 0, width, height);
+		    			ctx.drawImage(
+		    				bgCav, 
+		    				0, 0, width * SCALE, height * SCALE/2, 
+		    				0, height * SCALE, width, height * SCALE);
 
 						// render fps
 						date = new Date();
@@ -164,7 +174,7 @@
 						cft = date.getTime();
 						tl = cft - pft;
 						date = null;
-		    			ctx.fillText('SCALE: ' + SCALE + ', FPS: ' + ~~(1000/tl), 0, 20);
+		    			ctx.fillText('LOOP: ' + LOOP_COUNT + ', FPS: ' + ~~(1000/tl), 0, 20);
 
 					}, 1000/100);
 
