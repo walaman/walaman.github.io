@@ -19,7 +19,7 @@
 		<style>
 
 		  body {
-		  	background-color : #00F;
+		  	background-color : grey;
 		  	padding : 0px;
 		  	margin : 0px;
 		  	overflow: hidden;
@@ -56,10 +56,10 @@
 			var BG_IMG_HEIGHT = 240;
 
 			var CAM_SL = 70;
-			var CAM_X = 120;
+			var CAM_X = 160;
 			var CAM_Y = 30;
-			var CAM_Z = -230;
-			var CAM_R = 0;
+			var CAM_Z = 70;
+			var CAM_R = 40;
 
 			var GROUND_W = 320;
 			var GROUND_H = 240;
@@ -67,6 +67,14 @@
 			var SCALE = 0.5;
 
 			var LOOP_COUNT = 0;
+
+			Math.radian = function(degree) {
+			  return degree * Math.PI / 180;
+			};
+			 
+			Math.degree = function(radian) {
+			  return radian * 180 / Math.PI;
+			};
 
 			var drawImagePixel = function(canvasDataArray, canvasRedAt, imageDataArray, imageReadAt) {
 				canvasDataArray[canvasRedAt + 0] = imageDataArray[imageReadAt + 0];
@@ -92,9 +100,21 @@
 
 					for (u = -(w/2); u < w/2; u++) {
 
-						var dy = - (CAM_Z + projDistance);
-						var dx = (CAM_X + (projDistance * u) / CAM_SL);
+						// projection
+						var dy = 1;
+						var dx = u / CAM_SL;
 
+						// rotation
+						dx = dx * Math.cos(Math.radian(CAM_R)) + dy * Math.sin(Math.radian(CAM_R));
+						dy = dy * Math.cos(Math.radian(CAM_R)) - dx * Math.sin(Math.radian(CAM_R));
+
+						// projection scaling
+						dy *= projDistance;
+						dx *= projDistance;
+
+						// translation
+						dy += CAM_Z;
+						dx += CAM_X;
 						if (dy > 0 && dy < BG_IMG_HEIGHT && dx >= 0 && dx < BG_IMG_WIDTH) {
 							drawImagePixel(imageDataData, redAt, BG_IMG_DATA_ARRAY, getDataArrayRed(~~dx, ~~dy, BG_IMG_WIDTH));
 							LOOP_COUNT++;
@@ -184,7 +204,7 @@
 				BG_IMG = new Image();
 				BG_IMG.onload = function(e){
 					BG_IMG_DATA_ARRAY = getRawImageData(BG_IMG).data;
-					console.log(BG_IMG_DATA_ARRAY);
+					// console.log(BG_IMG_DATA_ARRAY);
 					start();
 				}
 				BG_IMG.src = 'ground.png';
