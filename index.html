@@ -55,11 +55,11 @@
 			var BG_IMG_WIDTH = 320;
 			var BG_IMG_HEIGHT = 240;
 
-			var CAM_SL = 70;
+			var CAM_SL = 110;
 			var CAM_X = 160;
 			var CAM_Y = 30;
 			var CAM_Z = 70;
-			var CAM_R = 40;
+			var CAM_R = 0;
 
 			var GROUND_W = 320;
 			var GROUND_H = 240;
@@ -68,12 +68,8 @@
 
 			var LOOP_COUNT = 0;
 
-			Math.radian = function(degree) {
+			var radian = function(degree) {
 			  return degree * Math.PI / 180;
-			};
-			 
-			Math.degree = function(radian) {
-			  return radian * 180 / Math.PI;
 			};
 
 			var drawImagePixel = function(canvasDataArray, canvasRedAt, imageDataArray, imageReadAt) {
@@ -81,6 +77,10 @@
 				canvasDataArray[canvasRedAt + 1] = imageDataArray[imageReadAt + 1];
 				canvasDataArray[canvasRedAt + 2] = imageDataArray[imageReadAt + 2];
 				canvasDataArray[canvasRedAt + 3] = imageDataArray[imageReadAt + 3];
+			};
+
+			var drawTransparent = function(canvasDataArray, canvasRedAt, imageDataArray, imageReadAt) {
+				canvasDataArray[canvasRedAt + 3] = 0;
 			};
 
 			var getDataArrayRed = function(x, y, width) {
@@ -96,28 +96,29 @@
 
 				for (v = 0; v < h/2; v++) {
 
-					var projDistance = (CAM_Y / v) * CAM_SL;
-
 					for (u = -(w/2); u < w/2; u++) {
 
 						// projection
-						var dy = 1;
-						var dx = u / CAM_SL;
+						var py = 1;
+						var px = u / CAM_SL;
 
 						// rotation
-						dx = dx * Math.cos(Math.radian(CAM_R)) + dy * Math.sin(Math.radian(CAM_R));
-						dy = dy * Math.cos(Math.radian(CAM_R)) - dx * Math.sin(Math.radian(CAM_R));
+						dx = px * Math.cos(radian(CAM_R)) + py * Math.sin(radian(CAM_R));
+						dy = py * Math.cos(radian(CAM_R)) - px * Math.sin(radian(CAM_R));
 
 						// projection scaling
+						var projDistance = (CAM_Y / v) * CAM_SL;
 						dy *= projDistance;
 						dx *= projDistance;
 
 						// translation
 						dy += CAM_Z;
 						dx += CAM_X;
-						if (dy > 0 && dy < BG_IMG_HEIGHT && dx >= 0 && dx < BG_IMG_WIDTH) {
+
+						if (dy > 0 && dy < BG_IMG_HEIGHT && dx > 0 && dx < BG_IMG_WIDTH) {
 							drawImagePixel(imageDataData, redAt, BG_IMG_DATA_ARRAY, getDataArrayRed(~~dx, ~~dy, BG_IMG_WIDTH));
-							LOOP_COUNT++;
+						} else {
+							drawTransparent(imageDataData, redAt);
 						}
 
 						redAt += 4;
@@ -188,6 +189,8 @@
 		    				0, 0, width * SCALE, height * SCALE/2, 
 		    				0, height * SCALE, width, height * SCALE);
 
+		    			CAM_R += tl/100;
+
 						// render fps
 						date = new Date();
 						pft = cft;
@@ -204,7 +207,6 @@
 				BG_IMG = new Image();
 				BG_IMG.onload = function(e){
 					BG_IMG_DATA_ARRAY = getRawImageData(BG_IMG).data;
-					// console.log(BG_IMG_DATA_ARRAY);
 					start();
 				}
 				BG_IMG.src = 'ground.png';
