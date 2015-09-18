@@ -16,17 +16,6 @@ var SCALE = 0.5;
 
 var LOOP_COUNT = 0;
 
-var drawImagePixel = function(canvasDataArray, canvasRedAt, imageDataArray, imageReadAt) {
-	canvasDataArray[canvasRedAt + 0] = imageDataArray[imageReadAt + 0];
-	canvasDataArray[canvasRedAt + 1] = imageDataArray[imageReadAt + 1];
-	canvasDataArray[canvasRedAt + 2] = imageDataArray[imageReadAt + 2];
-	canvasDataArray[canvasRedAt + 3] = imageDataArray[imageReadAt + 3];
-};
-
-var drawTransparent = function(canvasDataArray, canvasRedAt, imageDataArray, imageReadAt) {
-	canvasDataArray[canvasRedAt + 3] = 0;
-};
-
 var render = function (ctx, imageData, imageDataData, w, h) {
 
 	var u = 0;
@@ -41,6 +30,7 @@ var render = function (ctx, imageData, imageDataData, w, h) {
 
 	var dx = 0;
 	var dy = 0;
+	var dp = 0;
 
 	for (v = 0; v < h/2; v++) {
 
@@ -48,15 +38,24 @@ var render = function (ctx, imageData, imageDataData, w, h) {
 
 		for (u = -(w/2); u < w/2; u++) {
 
-			drawImagePixel(
-				imageDataData, 
-				(redAt++) * 4, 
-				BG_IMG_DATA_ARRAY, 
-				((BG_IMG_WIDTH * ~~Math.abs((((u / CAM_SL) * cosCam + sinCam) * projDistance + CAM_Z) % BG_IMG_HEIGHT)) + 
-				~~Math.abs(((cosCam - (u / CAM_SL) * sinCam) * projDistance + CAM_X) % BG_IMG_WIDTH)) * 4);
+			dx = ((cosCam - (u / CAM_SL) * sinCam)
+				 * projDistance 
+				 + CAM_X)
+				 % BG_IMG_WIDTH;
+
+			dy = (((u / CAM_SL) * cosCam + sinCam)
+				 * projDistance 
+				 + CAM_Z)
+				 % BG_IMG_HEIGHT;
+
+			dp = ((BG_IMG_WIDTH * ~~(dy < 0 ? -dy : dy) ) + ~~(dx < 0 ? -dx : dx) ) * 4;
+
+			imageDataData[redAt++] = BG_IMG_DATA_ARRAY[dp++];
+			imageDataData[redAt++] = BG_IMG_DATA_ARRAY[dp++];
+			imageDataData[redAt++] = BG_IMG_DATA_ARRAY[dp++];
+			imageDataData[redAt++] = BG_IMG_DATA_ARRAY[dp++];
 
 			LOOP_COUNT++;
-
 		}
 	}
 	
@@ -135,7 +134,7 @@ var init = function () {
 			date = null;
 			ctx.fillText('LOOP: ' + LOOP_COUNT + ', FPS: ' + ~~(1000/tl), 0, 20);
 
-		}, 1000/200);
+		}, 1000/100);
 
 	};
 
