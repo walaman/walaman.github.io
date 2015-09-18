@@ -3,11 +3,12 @@ var BG_IMG_DATA_ARRAY = [];
 var BG_IMG_WIDTH = 256;
 var BG_IMG_HEIGHT = 256;
 
-var CAM_SL = 200;
-var CAM_X = 160;
-var CAM_Y = 130;
+var CAM_SL = 100;
+var CAM_X = 0;
+var CAM_Y = 100;
 var CAM_Z = 70;
-var CAM_R = 0;
+var CAM_R = -90;
+var CAM_DOV = 1000;
 
 var GROUND_W = 320;
 var GROUND_H = 240;
@@ -40,19 +41,21 @@ var render = function (imageDataArray, w, h) {
 
 		projDistance = (CAM_Y / v) * CAM_SL;
 
-		// if (projDistance > 1000) continue;
-		// da = 255 - 255 * projDistance/1000;
+		if (projDistance > CAM_DOV) {
+			redAt += w;
+			continue;
+		}
+
+		da = 1 - projDistance / CAM_DOV;
 
 		for (u = -(w/2); u < w/2; u++) {
 
-			// dw = u / CAM_SL;
-
-			dx = ((cosCam - u / CAM_SL * sinCam)
+			dx = ((cosCam - (u / CAM_SL) * sinCam)
 				 * projDistance 
 				 + CAM_X)
 				 & 255;
 
-			dy = ((u / CAM_SL * cosCam + sinCam)
+			dy = (((u / CAM_SL) * cosCam + sinCam)
 				 * projDistance 
 				 + CAM_Z)
 				 & 255;
@@ -62,7 +65,7 @@ var render = function (imageDataArray, w, h) {
 					~~(dx < 0 ? -dx : dx)) * 4;
 
 			imageDataArray[redAt++] = 
-				(BG_IMG_DATA_ARRAY[dp + 3] << 24) | // aplha
+				(~~(BG_IMG_DATA_ARRAY[dp + 3] * da) << 24) | // aplha
 				(BG_IMG_DATA_ARRAY[dp + 2] << 16) | // blue
 				(BG_IMG_DATA_ARRAY[dp + 1] <<  8) | // green
 				 BG_IMG_DATA_ARRAY[dp + 0]; // red
