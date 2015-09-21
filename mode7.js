@@ -1,62 +1,71 @@
+(function(){
+
+
 var BG_IMG = new Image();
 var BG_IMG_DATA_ARRAY = [];
 var BG_IMG_WIDTH = 256;
 var BG_IMG_HEIGHT = 256;
 
-var CAM_SL = 100;
+var CAM_SL = 170;
 var CAM_X = 0;
-var CAM_Y = 100;
+var CAM_Y = 200;
 var CAM_Z = 70;
 var CAM_R = 0;
-var CAM_DOV = 1000;
+var CAM_DOV = 1400;
+
 
 var GROUND_W = 320;
 var GROUND_H = 240;
 var GROUND_X = 0;
 var GROUND_Y = 0;
 
+var FPS = 60;
 var SCALE = 0.5;
+
+var MATH_SIN = Math.sin;
+var MATH_COS = Math.cos;
+var MATH_SQRT = Math.sqrt;
 
 var LOOP_COUNT = 0;
 
-var render = function (imageDataArray, w, h) {
+var OBJS = [
+{
+	x : -100,
+	y : 0,
+	z : 200
+},
+{
+	x : 100,
+	y : 0,
+	z : 200
+}
+];
 
-	var u = 0;
-	var v = 0;
-	var redAt = 0;
+var renderGround = function (imageDataArray, w, h) {
+
 	LOOP_COUNT = 0;
 
-	var cosCam = Math.cos(CAM_R * Math.PI / 180);
-	var sinCam = Math.sin(CAM_R * Math.PI / 180);
-
-	var projDistance = 0;
-
-	var dx = 0;
-	var dy = 0;
-	var dw = 0;
-	var dp = 0;
-	var da = 0;
+	var cosCam = MATH_COS(CAM_R * Math.PI / 180);
+	var sinCam = MATH_SIN(CAM_R * Math.PI / 180);
+	var ra = 0, u, v, pd, dx, dy, dp;
 
 	for (v = 0; v < h/2; v++) {
-
-		projDistance = (CAM_Y / v) * CAM_SL;
-
-		if (projDistance > CAM_DOV) {
-			redAt += w;
-			continue;
-		}
-
-		da = 1 - projDistance / CAM_DOV;
-
 		for (u = -(w/2); u < w/2; u++) {
 
+			pd = (CAM_Y / v) * MATH_SQRT(CAM_SL*CAM_SL + u*u);
+
+			if (pd > CAM_DOV) {
+				ra++;
+				continue;
+			}
+
 			dx = (((u / CAM_SL) * cosCam + sinCam)
-				 * projDistance 
+				 * pd 
 				 + CAM_X)
 				 & 255;
 
 			dy = -((cosCam - (u / CAM_SL) * sinCam)
-				 * projDistance 
+				 * pd 
 				 + CAM_Z)
 				 & 255;
 
@@ -64,18 +73,30 @@ var render = function (imageDataArray, w, h) {
 					~~(dy < 0 ? -dy : dy)) + 
 					~~(dx < 0 ? -dx : dx)) * 4;
 
-			imageDataArray[redAt++] = 
-				(~~(BG_IMG_DATA_ARRAY[dp + 3] * da) << 24) | // aplha
+			imageDataArray[ra++] = 
+				(~~(BG_IMG_DATA_ARRAY[dp + 3] * (1 - pd / CAM_DOV) ) << 24) | // aplha
 				(BG_IMG_DATA_ARRAY[dp + 2] << 16) | // blue
 				(BG_IMG_DATA_ARRAY[dp + 1] <<  8) | // green
 				 BG_IMG_DATA_ARRAY[dp + 0]; // red
-
-			// imageDataArray[redAt++] = BG_IMG_DATA_ARRAY[dp];
 
 			LOOP_COUNT++;
 		}
 	}
 	
+};
+
+var renderObjects = function(ctx, objs) {
+
+	// pre cal camera state
+
+	// each objects
+	for (var i = objs.length; i >= 0; i--) {
+
+		// cal projected postion form camera
+
+		// 
+	}
+
 };
 
 var getRawImageData = function(img) {
@@ -85,6 +106,10 @@ var getRawImageData = function(img) {
 	cav.height = img.height;
 	ctx.drawImage(img, 0, 0);
 	return ctx.getImageData(0, 0, img.width, img.height);
+};
+
+var setup = function() {
+
 };
 
 
@@ -135,18 +160,23 @@ var init = function () {
 
 		var loop = setInterval(function(){
 
-			// render image
+			// clear screen
 			ctx.clearRect(0, 0, width, height);
 
-			render(data, width * SCALE, height * SCALE);
+			// render ground
+			renderGround(data, width * SCALE, height * SCALE);
 			imageData.data.set(buf8);
 			bgCtx.putImageData(imageData, 0, height * SCALE/2);
 
+			// render objects
+			renderObjects(bgCtx, OBJS);
+
+			// draw scene
 			ctx.drawImage(bgCav, 0, 0, width, height);
 
-			// rotation animation
+			// update cam
 			CAM_R += tl / 50;
-			CAM_X += tl / 3;
+			// CAM_X += tl / 3;
 
 			// render fps
 			date = new Date();
@@ -156,7 +186,7 @@ var init = function () {
 			date = null;
 			ctx.fillText('LOOP: ' + LOOP_COUNT + ', FPS: ' + ~~(1000/tl), 0, 20);
 
-		}, 1000/60);
+		}, 1000/FPS);
 
 	};
 
@@ -164,8 +194,11 @@ var init = function () {
 	BG_IMG = new Image();
 	BG_IMG.onload = function(e){
 		BG_IMG_DATA_ARRAY = getRawImageData(BG_IMG).data;
-		// BG_IMG_DATA_ARRAY = getRawImage32BitArray(BG_IMG);
 		start();
 	}
 	BG_IMG.src = 'ground2.png';
 };
+
+init();
+
+})();
