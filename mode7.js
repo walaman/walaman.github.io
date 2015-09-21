@@ -1,39 +1,42 @@
 (function(){
 
+var IMG_BG = new Image();
+var IMG_BG_DATA_ARRAY = [];
+var IMG_BG_WIDTH = 256;
+var IMG_BG_HEIGHT = 256;
 
-var BG_IMG = new Image();
-var BG_IMG_DATA_ARRAY = [];
-var BG_IMG_WIDTH = 256;
-var BG_IMG_HEIGHT = 256;
+var SCR_W = 320;
+var SCR_H = 375;
 
-var CAM_SL = 170;
+var CAM_SL = 200;
 var CAM_X = 0;
-var CAM_Y = 200;
+var CAM_Y = 100;
 var CAM_Z = 70;
-var CAM_R = 0;
+var CAM_R = 100;
 var CAM_DOV = 1400;
-
 
 var GROUND_W = 320;
 var GROUND_H = 240;
 var GROUND_X = 0;
 var GROUND_Y = 0;
 
-var FPS = 60;
+var FPS = 200;
 var SCALE = 0.5;
+var LOOP_COUNT = 0;
 
 var MATH_SIN = Math.sin;
 var MATH_COS = Math.cos;
+
+var MATH_ASIN = Math.asin;
+var MATH_ACOS = Math.acos;
+var MATH_ATAN = Math.atan;
+
 var MATH_SQRT = Math.sqrt;
+var MATH_PI = Math.PI;
+var MATH_ABS = Math.abs;
 
-var LOOP_COUNT = 0;
-
+var IMG_OBJ;
 var OBJS = [
-{
-	x : -100,
-	y : 0,
-	z : 200
-},
 {
 	x : 100,
 	y : 0,
@@ -41,45 +44,41 @@ var OBJS = [
 }
 ];
 
-var renderGround = function (imageDataArray, w, h) {
+var IMGS_SRC = [
+	'ground2.png', 
+	'oldman.png'
+];
+
+var IMGS;
+
+var renderGround = function (imageDataArray, width, height) {
 
 	LOOP_COUNT = 0;
+	var cosCam = MATH_COS(CAM_R * MATH_PI / 180);
+	var sinCam = MATH_SIN(CAM_R * MATH_PI / 180);
+	var ra = -1, u, v, pd, dx, dy, dp, halfHeight = height/2, halfWidth = width/2, w = CAM_SL;
 
-	var cosCam = MATH_COS(CAM_R * Math.PI / 180);
-	var sinCam = MATH_SIN(CAM_R * Math.PI / 180);
-	var ra = 0, u, v, pd, dx, dy, dp;
+	for (v = 0; v < halfHeight; v++) {
+		for (u = -halfWidth; u < halfWidth; u++) {
 
-	for (v = 0; v < h/2; v++) {
-		for (u = -(w/2); u < w/2; u++) {
+			// pd = (CAM_Y / v) * MATH_SQRT( w * w + u * u ); // fish eye
+			pd = (CAM_Y / v) * w; // plain
+			ra++;
 
-			pd = (CAM_Y / v) * MATH_SQRT(CAM_SL*CAM_SL + u*u);
+			if (pd > CAM_DOV) continue;
 
-			if (pd > CAM_DOV) {
-				ra++;
-				continue;
-			}
+			dx = ((u / w) * cosCam + sinCam) * pd + CAM_X;
+			dy = -(cosCam - (u / w) * sinCam) * pd + CAM_Z;
 
-			dx = (((u / CAM_SL) * cosCam + sinCam)
-				 * pd 
-				 + CAM_X)
-				 & 255;
+			dp = ((IMG_BG_WIDTH * ~~MATH_ABS(dy & 255)) + ~~MATH_ABS(dx & 255)) * 4;
 
-			dy = -((cosCam - (u / CAM_SL) * sinCam)
-				 * pd 
-				 + CAM_Z)
-				 & 255;
+			imageDataArray[ra] = 
+				(~~(IMG_BG_DATA_ARRAY[dp + 3] * (1 - pd / CAM_DOV) ) << 24) | // aplha
+				(IMG_BG_DATA_ARRAY[dp + 2] << 16) | // blue
+				(IMG_BG_DATA_ARRAY[dp + 1] <<  8) | // green
+				 IMG_BG_DATA_ARRAY[dp + 0]; // red
 
-			dp = ((BG_IMG_WIDTH * 
-					~~(dy < 0 ? -dy : dy)) + 
-					~~(dx < 0 ? -dx : dx)) * 4;
-
-			imageDataArray[ra++] = 
-				(~~(BG_IMG_DATA_ARRAY[dp + 3] * (1 - pd / CAM_DOV) ) << 24) | // aplha
-				(BG_IMG_DATA_ARRAY[dp + 2] << 16) | // blue
-				(BG_IMG_DATA_ARRAY[dp + 1] <<  8) | // green
-				 BG_IMG_DATA_ARRAY[dp + 0]; // red
-
-			LOOP_COUNT++;
+			// LOOP_COUNT++;
 		}
 	}
 	
@@ -88,14 +87,37 @@ var renderGround = function (imageDataArray, w, h) {
 var renderObjects = function(ctx, objs) {
 
 	// pre cal camera state
+	var camObjs = [];
+	var obj;
+	var dist, dx, dy, u, v, w = CAM_SL, da;
 
 	// each objects
-	for (var i = objs.length; i >= 0; i--) {
+	for (var i = objs.length-1; i >= 0; i--) {
 
-		// cal projected postion form camera
+		obj = objs[i];
 
-		// 
+		// cal distance form camera
+		dx = CAM_X - obj.x;
+		dz = CAM_Z - obj.z;
+		dist = MATH_SQRT( dz * dz + dx * dx );
+
+		// cal projected geometry from camera
+		v = (CAM_Y / dist) * w;
+
+		da = MATH_ATAN(dx/dz) - CAM_R * MATH_PI / 180;
+
+		dist = MATH_COS(da) * dist;
+
+		ctx.drawImage(IMG_OBJ, 0, v);
+
+		// cal scale factor
+		LOOP_COUNT = dist;
+
+		// sort
+
 	}
+
+
 
 };
 
@@ -112,12 +134,11 @@ var setup = function() {
 
 };
 
-
 var init = function () {
 
 	// screen size
-	var width = 320;
-	var height = 375;
+	var width = SCR_W;
+	var height = SCR_H;
 
 	// game canvas and context
 	var cav = document.getElementById('game_canvas');
@@ -150,11 +171,14 @@ var init = function () {
 	bgCav.height = height * SCALE;
 
 	// reusable image data (for faster render)
-	var imageData = bgCtx.createImageData(width * SCALE, height * SCALE/2);
+	var imageData = bgCtx.createImageData(width * SCALE, height * SCALE / 2);
 
 	var buf = new ArrayBuffer(imageData.data.length);
 	var buf8 = new Uint8ClampedArray(buf);
 	var data = new Uint32Array(buf);
+
+	var count = 0;
+	var totalFps = 0;;
 
 	var start = function(){
 
@@ -177,6 +201,7 @@ var init = function () {
 			// update cam
 			CAM_R += tl / 50;
 			// CAM_X += tl / 3;
+			// CAM_Z += tl / 3;
 
 			// render fps
 			date = new Date();
@@ -184,19 +209,25 @@ var init = function () {
 			cft = date.getTime();
 			tl = cft - pft;
 			date = null;
-			ctx.fillText('LOOP: ' + LOOP_COUNT + ', FPS: ' + ~~(1000/tl), 0, 20);
+
+			count++;
+			totalFps += 1000/tl;
+
+			ctx.fillText('LOOP: ' + LOOP_COUNT + ', FPS: ' + ~~(totalFps / count), 0, 20);
 
 		}, 1000/FPS);
 
 	};
 
 	// load image
-	BG_IMG = new Image();
-	BG_IMG.onload = function(e){
-		BG_IMG_DATA_ARRAY = getRawImageData(BG_IMG).data;
+	IMGS = IMGS_LOADER.loadSrcs(IMGS_SRC, function(results){
+		IMG_BG_DATA_ARRAY = getRawImageData(IMG_BG).data;
 		start();
-	}
-	BG_IMG.src = 'ground2.png';
+	});
+
+	IMG_BG = IMGS[0];
+	IMG_OBJ = IMGS[1];
+
 };
 
 init();
