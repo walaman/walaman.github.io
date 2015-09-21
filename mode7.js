@@ -7,7 +7,7 @@ var CAM_SL = 100;
 var CAM_X = 0;
 var CAM_Y = 100;
 var CAM_Z = 70;
-var CAM_R = -90;
+var CAM_R = 0;
 var CAM_DOV = 1000;
 
 var GROUND_W = 320;
@@ -50,12 +50,12 @@ var render = function (imageDataArray, w, h) {
 
 		for (u = -(w/2); u < w/2; u++) {
 
-			dx = ((cosCam - (u / CAM_SL) * sinCam)
+			dx = (((u / CAM_SL) * cosCam + sinCam)
 				 * projDistance 
 				 + CAM_X)
 				 & 255;
 
-			dy = (((u / CAM_SL) * cosCam + sinCam)
+			dy = -((cosCam - (u / CAM_SL) * sinCam)
 				 * projDistance 
 				 + CAM_Z)
 				 & 255;
@@ -85,42 +85,6 @@ var getRawImageData = function(img) {
 	cav.height = img.height;
 	ctx.drawImage(img, 0, 0);
 	return ctx.getImageData(0, 0, img.width, img.height);
-};
-
-var getRawImage32BitArray = function(img) {
-
-	var cav = document.createElement('canvas');
-	var ctx = cav.getContext('2d');
-	var width = img.width;
-	var height = img.height;
-
-	cav.width = width;
-	cav.height = height;
-	ctx.drawImage(img, 0, 0);
-	var imgDataArray = ctx.getImageData(0, 0, width, height).data;
-
-	var buf = new ArrayBuffer(imgDataArray.length);
-	var data = new Uint32Array(buf);
-
-	var dp = 0;
-	var redAt = 0;
-
-	for (var y = 0; y < height; y++) {
-		for (var x = 0; x < width; x++) {
-
-			dp = redAt * 4;
-
-			data[redAt++] = 
-				(imgDataArray[dp + 3] << 24) | // aplha
-				(imgDataArray[dp + 2] << 16) | // blue
-				(imgDataArray[dp + 1] <<  8) | // green
-				 imgDataArray[dp + 0]; // red
-
-		}
-	}
-
-
-	return data;
 };
 
 
