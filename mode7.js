@@ -48,18 +48,20 @@ var OBJS = [
 	dispX : 0,
 	dispY : 0,
 	dispW : 0,
-	dispH : 0
+	dispH : 0,
+	dispScale : 1
 
 },
 {
-	x : -70,
+	x : 70,
 	y : 0,
-	z : 300,
+	z : 350,
 
 	dispX : 0,
 	dispY : 0,
 	dispW : 0,
-	dispH : 0
+	dispH : 0,
+	dispScale : 1
 }
 ];
 
@@ -94,7 +96,7 @@ var renderGround = function (imageDataArray, width, height) {
 
 			if (pd > CAM_DOV) continue;
 
-			dx = ((u / w) * cosCam + sinCam) * pd + CAM_X;
+			dx =  ((u / w) * cosCam + sinCam) * pd + CAM_X;
 			dy = -(cosCam - (u / w) * sinCam) * pd - CAM_Z;
 
 			dp = ((IMG_BG_WIDTH * ~~MATH_ABS(dy & 255)) + ~~MATH_ABS(dx & 255)) * 4;
@@ -105,7 +107,7 @@ var renderGround = function (imageDataArray, width, height) {
 				(IMG_BG_DATA_ARRAY[dp + 1] <<  8) | // green
 				 IMG_BG_DATA_ARRAY[dp + 0]; // red
 
-			// LOOP_COUNT++;
+			LOOP_COUNT++;
 		}
 	}
 	
@@ -135,8 +137,8 @@ var renderObjects = function(ctx, objs, width, height) {
 		dz = CAM_Z - obj.z;
 
 		// cal projected geometry from camera
-		px =  ((dx ) * cosCam - (dz ) * sinCam);
-		py = -((dz ) * cosCam + (dx ) * sinCam);
+		px =  (dx * cosCam - dz * sinCam);
+		py = -(dz * cosCam + dx * sinCam);
 		
 		// cal scale factor
 		dispScale = CAM_SL / py;
@@ -148,11 +150,25 @@ var renderObjects = function(ctx, objs, width, height) {
 		if (py < 0 || py > CAM_DOV || dispX + dispW < 0 || dispY > width) 
 			continue;
 
+		// set obj
 		obj.dispW = dispW;
 		obj.dispH = dispH;
 		obj.dispX = dispX;
 		obj.dispY = dispY;
+		obj.dispScale = dispScale;
 
+		// order and push
+		for (var a = camObjs.length - 1; a >= 0; a--) {
+			if (camObjs[a].dispScale >= dispScale) break;
+		}
+		camObjs.splice(a + 1, 0, obj);
+
+	}
+
+	// draw objs
+	for (var i = camObjs.length - 1; i >= 0; i--) {
+
+		obj = camObjs.pop();
 		ctx.drawImage(
 			IMG_OBJ,
 			0, 
@@ -163,19 +179,7 @@ var renderObjects = function(ctx, objs, width, height) {
 			~~obj.dispY, 
 			~~obj.dispW, 
 			~~obj.dispH);
-
 	}
-
-	// draw objs
-	for (var i = camObjs.length - 1; i >= 0; i++) {
-
-		obj = camObjs.pop();
-
-
-
-	}
-
-
 };
 
 var getRawImageData = function(img) {
