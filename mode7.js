@@ -1,29 +1,5 @@
 (function(){
 
-var IMG_BG = new Image();
-var IMG_BG_DATA_ARRAY = [];
-var IMG_BG_WIDTH = 256;
-var IMG_BG_HEIGHT = 256;
-
-var SCR_W = 320;
-var SCR_H = 375;
-
-var CAM_SL = 200;
-var CAM_X = 0;
-var CAM_Y = 100;
-var CAM_Z = 70;
-var CAM_R = 100;
-var CAM_DOV = 1400;
-
-var GROUND_W = 320;
-var GROUND_H = 240;
-var GROUND_X = 0;
-var GROUND_Y = 0;
-
-var FPS = 200;
-var SCALE = 0.5;
-var LOOP_COUNT = 0;
-
 var MATH_SIN = Math.sin;
 var MATH_COS = Math.cos;
 
@@ -35,12 +11,55 @@ var MATH_SQRT = Math.sqrt;
 var MATH_PI = Math.PI;
 var MATH_ABS = Math.abs;
 
+var IMG_BG = new Image();
+var IMG_BG_DATA_ARRAY = [];
+var IMG_BG_WIDTH = 256;
+var IMG_BG_HEIGHT = 256;
+
+var SCR_W = 320;
+var SCR_H = 375;
+
+var CAM_SL = 160;
+var CAM_X = 0;
+var CAM_Y = 60;
+var CAM_Z = 60;
+var CAM_R = 0;
+var CAM_DOV = 1400;
+
+var GROUND_W = 320;
+var GROUND_H = 240;
+var GROUND_X = 0;
+var GROUND_Y = 0;
+
+var FPS = 100;
+var SCALE = 0.5;
+var LOOP_COUNT = 0;
+
 var IMG_OBJ;
+var IMG_OBJ_WIDTH = 31;
+var IMG_OBJ_HEIGHT = 38;
+
 var OBJS = [
 {
-	x : 100,
+	x : 70,
 	y : 0,
-	z : 200
+	z : 300,
+
+	dispX : 0,
+	dispY : 0,
+	dispW : 0,
+	dispH : 0
+
+},
+{
+	x : -70,
+	y : 0,
+	z : 300,
+
+	dispX : 0,
+	dispY : 0,
+	dispW : 0,
+	dispH : 0
 }
 ];
 
@@ -54,21 +73,29 @@ var IMGS;
 var renderGround = function (imageDataArray, width, height) {
 
 	LOOP_COUNT = 0;
-	var cosCam = MATH_COS(CAM_R * MATH_PI / 180);
-	var sinCam = MATH_SIN(CAM_R * MATH_PI / 180);
-	var ra = -1, u, v, pd, dx, dy, dp, halfHeight = height/2, halfWidth = width/2, w = CAM_SL;
+	var cosCam = MATH_COS(CAM_R);
+	var sinCam = MATH_SIN(CAM_R);
+	var ra = -1, 
+		u, 
+		v, 
+		pd, 
+		dx, 
+		dy, 
+		dp, 
+		halfHeight = height/2, 
+		halfWidth = width/2, 
+		w = CAM_SL;
 
 	for (v = 0; v < halfHeight; v++) {
 		for (u = -halfWidth; u < halfWidth; u++) {
 
-			// pd = (CAM_Y / v) * MATH_SQRT( w * w + u * u ); // fish eye
-			pd = (CAM_Y / v) * w; // plain
+			pd = (CAM_Y / v) * w;
 			ra++;
 
 			if (pd > CAM_DOV) continue;
 
 			dx = ((u / w) * cosCam + sinCam) * pd + CAM_X;
-			dy = -(cosCam - (u / w) * sinCam) * pd + CAM_Z;
+			dy = -(cosCam - (u / w) * sinCam) * pd - CAM_Z;
 
 			dp = ((IMG_BG_WIDTH * ~~MATH_ABS(dy & 255)) + ~~MATH_ABS(dx & 255)) * 4;
 
@@ -84,14 +111,21 @@ var renderGround = function (imageDataArray, width, height) {
 	
 };
 
-var renderObjects = function(ctx, objs) {
+var renderObjects = function(ctx, objs, width, height) {
 
 	// pre cal camera state
-	var camObjs = [];
-	var obj;
-	var dist, dx, dy, u, v, w = CAM_SL, da;
+	var camObjs = [],
+		obj, distance, 
+		dx, dz, 
+		px, py,
+		dispScale, dispX, dispY, dispW, dispH,
+		halfHeight = height/2,
+		halfWidth = width/2;
 
-	// each objects
+	var cosCam = MATH_COS(CAM_R);
+	var sinCam = MATH_SIN(CAM_R);
+
+	// projections
 	for (var i = objs.length-1; i >= 0; i--) {
 
 		obj = objs[i];
@@ -99,24 +133,48 @@ var renderObjects = function(ctx, objs) {
 		// cal distance form camera
 		dx = CAM_X - obj.x;
 		dz = CAM_Z - obj.z;
-		dist = MATH_SQRT( dz * dz + dx * dx );
+		distance = MATH_SQRT( dz * dz + dx * dx );
 
 		// cal projected geometry from camera
-		v = (CAM_Y / dist) * w;
-
-		da = MATH_ATAN(dx/dz) - CAM_R * MATH_PI / 180;
-
-		dist = MATH_COS(da) * dist;
-
-		ctx.drawImage(IMG_OBJ, 0, v);
-
+		px =  ((dx / distance) * cosCam - (dz / distance) * sinCam) * distance;
+		py = -((dz / distance) * cosCam + (dx / distance) * sinCam) * distance;
+		
 		// cal scale factor
-		LOOP_COUNT = dist;
+		dispScale = CAM_SL / py;
+		dispW = IMG_OBJ_WIDTH * dispScale;
+		dispH = IMG_OBJ_HEIGHT * dispScale;
+		dispX = halfWidth - (px * dispScale) - dispW / 2;
+		dispY = halfHeight + (CAM_Y * dispScale) - dispH;
 
-		// sort
+		if (py < 0 || distance > CAM_DOV || 
+			dispX + dispW < 0 || dispY > width) continue;
+
+		obj.dispW = dispW;
+		obj.dispH = dispH;
+		obj.dispX = dispX;
+		obj.dispY = dispY;
+
+		ctx.drawImage(
+			IMG_OBJ,
+			0, 
+			0, 
+			~~IMG_OBJ_WIDTH, 
+			~~IMG_OBJ_HEIGHT,
+			~~obj.dispX, 
+			~~obj.dispY, 
+			~~obj.dispW, 
+			~~obj.dispH);
 
 	}
 
+	// draw objs
+	for (var i = camObjs.length - 1; i >= 0; i++) {
+
+		obj = camObjs.pop();
+
+
+
+	}
 
 
 };
@@ -190,18 +248,19 @@ var init = function () {
 			// render ground
 			renderGround(data, width * SCALE, height * SCALE);
 			imageData.data.set(buf8);
+			ctx.clearRect(0, 0, width * SCALE, height * SCALE);
 			bgCtx.putImageData(imageData, 0, height * SCALE/2);
 
 			// render objects
-			renderObjects(bgCtx, OBJS);
+			renderObjects(bgCtx, OBJS, width * SCALE, height * SCALE);
 
 			// draw scene
 			ctx.drawImage(bgCav, 0, 0, width, height);
 
 			// update cam
-			CAM_R += tl / 50;
+			// CAM_R += tl / 2000;
 			// CAM_X += tl / 3;
-			// CAM_Z += tl / 3;
+			CAM_Z += tl / 20;
 
 			// render fps
 			date = new Date();
@@ -213,7 +272,7 @@ var init = function () {
 			count++;
 			totalFps += 1000/tl;
 
-			ctx.fillText('LOOP: ' + LOOP_COUNT + ', FPS: ' + ~~(totalFps / count), 0, 20);
+			ctx.fillText('LOOP: ' + ~~LOOP_COUNT + ', FPS: ' + ~~(totalFps / count), 0, 20);
 
 		}, 1000/FPS);
 
