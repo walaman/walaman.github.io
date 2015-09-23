@@ -115,7 +115,7 @@ var renderObjects = function(ctx, objs, width, height) {
 
 	// pre cal camera state
 	var camObjs = [],
-		obj, distance, 
+		obj,
 		dx, dz, 
 		px, py,
 		dispScale, dispX, dispY, dispW, dispH,
@@ -133,11 +133,10 @@ var renderObjects = function(ctx, objs, width, height) {
 		// cal distance form camera
 		dx = CAM_X - obj.x;
 		dz = CAM_Z - obj.z;
-		distance = MATH_SQRT( dz * dz + dx * dx );
 
 		// cal projected geometry from camera
-		px =  ((dx / distance) * cosCam - (dz / distance) * sinCam) * distance;
-		py = -((dz / distance) * cosCam + (dx / distance) * sinCam) * distance;
+		px =  ((dx ) * cosCam - (dz ) * sinCam);
+		py = -((dz ) * cosCam + (dx ) * sinCam);
 		
 		// cal scale factor
 		dispScale = CAM_SL / py;
@@ -146,8 +145,8 @@ var renderObjects = function(ctx, objs, width, height) {
 		dispX = halfWidth - (px * dispScale) - dispW / 2;
 		dispY = halfHeight + (CAM_Y * dispScale) - dispH;
 
-		if (py < 0 || distance > CAM_DOV || 
-			dispX + dispW < 0 || dispY > width) continue;
+		if (py < 0 || py > CAM_DOV || dispX + dispW < 0 || dispY > width) 
+			continue;
 
 		obj.dispW = dispW;
 		obj.dispH = dispH;
