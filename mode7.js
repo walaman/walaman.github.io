@@ -270,9 +270,9 @@ var init = function () {
   var onLoop = function() {
 
     // updates
-    // CAM_R += tl / 2000;
-    // CAM_X += tl / 3;
-    // CAM_Z += tl / 20;
+    CAM_R += tl / 2000;
+    CAM_X += tl / 3;
+    CAM_Z += tl / 20;
 
     // clear screen
     ctx.clearRect(0, 0, width, height);
